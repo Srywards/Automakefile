@@ -1,0 +1,213 @@
+#!/bin/sh
+## automakefile for  in /home/da-pur_c/delivery/Piscine_SR/ADM_automakefile_2016
+## 
+## Made by Clem Da
+## Login   <da-pur_c@epitech.net>
+## 
+## Started on  Mon Jun 26 23:56:04 2017 Clem Da
+## Last update Wed Jun 28 22:36:43 2017 Clem Da
+##
+
+if [ $# -eq 0 ] || [ $# -gt 1 ]
+then
+    echo "Error: Need a config file"
+    exit 84
+elif [ $# -eq 1 ] && [ ! -f $1 ]
+then
+    echo "Error: File note valid"
+    exit 84
+fi
+
+AUTHOR=$(tail -1 /etc/passwd | cut -d ':' -f 5)
+LOGIN=$(tail -1 /etc/passwd | cut -d ':' -f 1)
+DATE=$(date +'%a %b %d %T %Y')
+DIR1=$(pwd)
+DIR2=$(echo $1 | cut -d '/' -f 1)
+DIR="$DIR1/$DIR2"
+CFLAGS=()
+LDFLAGS=()
+SRCS=()
+
+while read line || [ -n "$line" ];
+do
+    if echo $line | grep -q ";";
+    then
+	tab+=("$(echo $line | cut -d ';' -f 1)")
+	tab+=("$(echo $line | cut -d ';' -f 2)")
+    else
+	echo "Error: config file is false '$1'";
+	exit 84
+    fi
+done < $1
+
+i=0
+while [ $i -lt ${#tab[@]} ];
+do
+    case ${tab[$i]}
+    in
+	"EXEC") EXEC="${tab[$i+1]}";;
+	"PROJECT_DIR") PROJECT_DIR="${tab[$i+1]}";;
+	"CC") CC="${tab[$i+1]}";;
+	"SOURCES_DIR") SOURCES_DIR="${tab[$i+1]}";;
+	"CFLAGS") CFLAGS="${tab[$i+1]}";;
+	"LDFLAGS") LDFLAGS="${tab[$i+1]}";;
+	"HEADERS_DIR") HEADERS_DIR="${tab[$i+1]}";;
+	"LIBS_DIR") LIBS_DIR="${tab[$i+1]}";;
+	"BCK_DIR") BCK_DIR="${tab[$i+1]}";;
+	"ZIP") ZIP="${tab[$i+1]}";;
+	"ZIPFLAGS") ZIPFLAGS="${tab[$i+1]}";;
+	"UNZIP") UNZIP="${tab[$i+1]}";;
+	"UNZIPFLAGS") UNZIPFLAGS="${tab[$i+1]}";;
+	*) SRCS+=("${tab[$i]}") ;;
+    esac
+    i=$(($i+2))
+done
+
+if [ -z $PROJECT_DIR ];
+then
+    echo "Error: PROJECT_DIR is not set."
+    exit 84
+fi
+
+if [ ! -f $PROJECT_DIR/.update ];
+then
+    touch $PROJECT_DIR/.update
+    echo -n "2" > $PROJECT_DIR/.update
+fi
+
+if [ ! -f $PROJECT_DIR/.old_update ];
+then
+    touch $PROJECT_DIR/.old_update
+    echo -n "1" > $PROJECT_DIR/.old_update
+fi
+
+if [ -z $EXEC ];
+then
+    EXEC="a.out"
+fi
+
+if [ -z $CC ];
+then
+    CC="clang"
+fi
+
+if [ -z $BCK_DIR ];
+then
+    BCK_DIR="backup"
+fi
+
+if [ -z $LIBS_DIR ];
+then
+    LIBS_DIR="."
+fi
+
+if [ -z $SOURCES_DIR ];
+then
+    SOURCES_DIR="."
+fi
+
+if [ -z $HEADERS_DIR ];
+then
+    HEADERS_DIR="."
+fi
+
+if [ -z $ZIP ];
+then
+    ZIP="tar"
+fi
+
+if [ -z $ZIPFLAGS ];
+then
+    ZIPFLAGS="-cvf"
+fi
+
+if [ -z $UNZIP ];
+then
+    UNZIP="tar"
+fi
+
+if [ -z $UNZIPFLAGS ];
+then
+    UNZIPFLAGS="-xvf"
+fi
+
+i=0
+while [ $i -lt ${#SRCS[@]} ];
+do
+    if [ `echo $SRCS | grep ".c$"` ];
+    then
+	i=$(($i+1))
+    else
+	echo "Error: File(s) .c is not set."
+	exit 84
+    fi
+done
+
+OUTPUT="$PROJECT_DIR/Makefile"
+
+echo "##" > $OUTPUT
+echo "## Makefile for Makefile in $DIR" >> $OUTPUT
+echo "## " >> $OUTPUT
+echo "## Made by $AUTHOR" >> $OUTPUT
+echo "## Login   <$LOGIN@epitech.net>>" >> $OUTPUT
+echo "## " >> $OUTPUT
+echo "## Started on  $DATE $AUTHOR" >> $OUTPUT
+echo -n "## Last " >> $OUTPUT
+echo "update $DATE $AUTHOR" >> $OUTPUT
+echo "##" >> $OUTPUT
+echo >> $OUTPUT
+echo -e "EXEC\t\t=\t$EXEC" >> $OUTPUT
+echo >> $OUTPUT
+echo -e "SRCS\t\t=\t$SOURCES_DIR/${SRCS[0]}\t\\" >> $OUTPUT
+i=1
+while [ $i -lt ${#SRCS[@]} ];
+do
+    echo -e "\t\t\t$SOURCES_DIR/${SRCS[$i]}\t\\" >> $OUTPUT
+    i=$(($i+1))
+done
+echo >> $OUTPUT
+echo -e "OBJS\t\t=\t\$(SRCS:.c=.o)" >> $OUTPUT
+echo >> $OUTPUT
+echo -e "ARCHDIR\t\t=\tarchive" >> $OUTPUT
+echo >> $OUTPUT
+echo -e "CFLAGS\t\t=\t${CFLAGS[@]} -I ./$HEADERS_DIR\n" >> $OUTPUT
+echo -e "LDFLAGS\t\t=\t-L $LIBS_DIR ${LDFLAGS[@]}\n" >> $OUTPUT
+echo -e "ZIPFLAGS\t=\t$ZIPFLAGS\n" >> $OUTPUT
+echo -e "UNZIPFLAGS\t=\t$UNZIPFLAGS" >> $OUTPUT
+echo >> $OUTPUT
+echo -e "ZIP\t\t=\t$ZIP\n" >> $OUTPUT
+echo -e "UNZIP\t\t=\t$UNZIP\n" >> $OUTPUT
+echo -e "CC\t\t=\t$CC" >> $OUTPUT
+echo >> $OUTPUT
+echo -e "UPDATE\t\t=\t\`cat .update\`\n" >> $OUTPUT
+echo -e "OLD_UPDATE\t=\t\`cat .old_update\`\n" >> $OUTPUT
+echo -e "all:\t\t\$(EXEC)" >> $OUTPUT
+echo >> $OUTPUT
+echo -e "\$(EXEC):\t\$(OBJS)" >> $OUTPUT
+echo -e "\t\t\$(CC) -o \$(EXEC) \$(SRCS) \$(LDFLAGS) \$(CFLAGS)" >> $OUTPUT
+echo >> $OUTPUT
+echo -e "clean:" >> $OUTPUT
+echo -e "\t\trm -f \$(OBJS)" >> $OUTPUT
+echo >> $OUTPUT
+echo -e "fclean:\tclean" >> $OUTPUT
+echo -e "\t\trm -f \$(EXEC)" >> $OUTPUT
+echo >> $OUTPUT
+echo -e "re:\t\tfclean all" >> $OUTPUT
+echo >> $OUTPUT
+echo -e "archive:" >> $OUTPUT
+echo -e "\t@ mkdir -p $BCK_DIR" >> $OUTPUT
+echo -e "\t\$(ZIP) \$(ZIPFLAGS) $BCK_DIR/archive_\$(UPDATE) \$(SRCS) $HEADERS_DIR" >> $OUTPUT
+echo -e "\t@echo \"archive_\$(UPDATE) file generated.\"" >> $OUTPUT
+echo -e "\t@expr \`cat .update\` > .old_update" >> $OUTPUT
+echo -e "\t@expr \`cat .update\` + 1 > .update\n" >> $OUTPUT
+echo >> $OUTPUT
+echo -e "revert:" >> $OUTPUT
+echo -e "\t\$(UNZIP) \$(UNZIPFLAGS) $BCK_DIR/archive_\$(OLD_UPDATE)" >> $OUTPUT
+echo >> $OUTPUT
+echo -e "num:" >> $OUTPUT
+echo -e "\t@ echo \$(OLD_UPDATE)" >> $OUTPUT
+echo >> $OUTPUT
+echo -e "delete:" >> $OUTPUT
+echo -e "\trm -rf $BCK_DIR/archive_\$(OLD_UPDATE)" >> $OUTPUT
+echo -e "\t@expr \`cat .old_update\` - 1 > .old_update" >> $OUTPUT
+echo -e "\t@expr \`cat .update\` - 1 > .update" >> $OUTPUT
